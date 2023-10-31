@@ -34,7 +34,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     const loader = new Loader({
-      apiKey: "AIzaSyBujOB6856o3b5VSlXSR0jtYxXt9_ou4d4",
+      apiKey: "AIzaSyAkZiYSmZPco_peBYUZhALpKofFyojCTRs",
       version: "weekly",
       libraries: ["places"],
     });

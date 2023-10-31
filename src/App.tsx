@@ -90,7 +90,7 @@ export const App: React.FC = () => {
         if (status === "OK") {
           directionsRenderer.setDirections(response);
         } else {
-          alert("Could not display directions due to: " + status);
+          alert("Error: " + status);
         }
       },
     );

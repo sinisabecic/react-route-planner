@@ -1,36 +1,37 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
-import {
-  Button,
-  Input,
-} from "@oykos-development/devkit-react-ts-styled-components";
+import { Button } from "@oykos-development/devkit-react-ts-styled-components";
 import { Loader } from "@googlemaps/js-api-loader";
+import { AutocompleteInput } from "./components/AutoCompleteInput.tsx";
 
-interface FormData {
-  origin: string;
-  destination: string;
-  stops: string[];
+interface AddressData {
+  id: string;
+  value: string;
+  isValid: boolean;
 }
 
-const initialValues: FormData = { origin: "", destination: "", stops: [] };
+interface FormData {
+  origin: AddressData;
+  destination: AddressData;
+  stops: AddressData[];
+}
 
 export const App: React.FC = () => {
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<FormData>({
-    defaultValues: initialValues,
-  });
-
   const [map, setMap] = useState<google.maps.Map | null>(null);
-
-  const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
+  const [autocompleteService, setAutocompleteService] =
+    useState<google.maps.places.AutocompleteService | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const stops = watch("stops", []);
+  const initialAddressData = (value = ""): AddressData => ({
+    id: Date.now().toString(),
+    value,
+    isValid: false,
+  });
+
+  const [formData, setFormData] = useState<FormData>({
+    origin: initialAddressData(),
+    destination: initialAddressData(),
+    stops: [],
+  });
 
   useEffect(() => {
     const loader = new Loader({
@@ -40,48 +41,83 @@ export const App: React.FC = () => {
     });
 
     loader.load().then((google) => {
-      const googleMap = new google.maps.Map(
-        mapContainerRef.current as Element,
-        {
-          center: { lat: -34.397, lng: 150.644 },
-          zoom: 8,
-        },
-      );
+      if (!mapContainerRef.current) return;
+
+      const googleMap = new google.maps.Map(mapContainerRef.current, {
+        center: { lat: 42.26, lng: 19.15 },
+        zoom: 8,
+      });
       setMap(googleMap);
+
+      setAutocompleteService(new google.maps.places.AutocompleteService());
     });
   }, []);
 
-  const addStop = () => {
-    const newStopArray = [...stops, ""];
-    // Triggering an input update in react-hook-form
-    newStopArray.forEach((stop, index) => {
-      setValue(`stops.${index}`, stop);
+  const handleAddressChange = (
+    field: keyof FormData,
+    id: string | null,
+    value: string,
+    isValid: boolean,
+  ) => {
+    setFormData((prev) => {
+      if (field === "stops" && id) {
+        return {
+          ...prev,
+          stops: prev.stops.map((stop) =>
+            stop.id === id ? { ...stop, value, isValid } : stop,
+          ),
+        };
+      } else {
+        return {
+          ...prev,
+          [field]: { ...prev[field], value, isValid },
+        };
+      }
     });
   };
 
-  const onSubmit: SubmitHandler<FormData> = (data) => {
-    // Clear previous markers
-    markers.forEach((marker) => marker.setMap(null));
-    setMarkers([]);
+  const addStop = () => {
+    setFormData((prev) => ({
+      ...prev,
+      stops: [...prev.stops, initialAddressData()],
+    }));
+  };
+
+  const onSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!map) {
+      alert("Map is not initialized yet.");
+      return;
+    }
+
+    const areAllStopsValid = formData.stops.every((stop) => stop.isValid);
+
+    if (!formData.origin.isValid || !formData.destination.isValid) {
+      alert("Please select valid addresses for origin and destination.");
+      return;
+    }
+
+    if (!areAllStopsValid) {
+      alert("Please select valid addresses for all stops.");
+      return;
+    }
 
     const directionsService = new google.maps.DirectionsService();
     const directionsRenderer = new google.maps.DirectionsRenderer();
     directionsRenderer.setMap(map);
 
-    const stopsArray = Array.isArray(data.stops) ? data.stops : [];
-
-    const waypoints = stopsArray
-      .filter((stop) => stop)
+    const waypoints = formData.stops
+      .filter((stop) => stop.value.trim() !== "")
       .map((stop) => ({
-        location: stop,
+        location: stop.value,
         stopover: true,
       }));
 
-    // Requesting route data from the Directions API
     directionsService.route(
       {
-        origin: data.origin,
-        destination: data.destination,
+        origin: formData.origin.value,
+        destination: formData.destination.value,
         waypoints: waypoints,
         optimizeWaypoints: true,
         travelMode: google.maps.TravelMode.DRIVING,
@@ -98,26 +134,39 @@ export const App: React.FC = () => {
 
   return (
     <div>
-      <div ref={mapContainerRef} style={{ height: "400px" }} />{" "}
-      {/* Map container */}
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <Input
-          {...register("origin", { required: true })}
+      <div ref={mapContainerRef} style={{ height: "400px" }} />
+      <form onSubmit={onSubmit}>
+        <AutocompleteInput
           placeholder="Origin"
+          autocompleteService={autocompleteService}
+          onChange={(value) =>
+            handleAddressChange("origin", null, value, false)
+          }
+          onSelect={(value) => handleAddressChange("origin", null, value, true)}
         />
-        {errors.origin && <span>This field is required</span>}
 
-        <Input
-          {...register("destination", { required: true })}
+        <AutocompleteInput
           placeholder="Destination"
+          autocompleteService={autocompleteService}
+          onChange={(value) =>
+            handleAddressChange("destination", null, value, false)
+          }
+          onSelect={(value) =>
+            handleAddressChange("destination", null, value, true)
+          }
         />
-        {errors.destination && <span>This field is required</span>}
 
-        {stops.map((_, index) => (
-          <div key={index}>
-            <Input
-              {...register(`stops.${index}`)}
-              placeholder={`Stop ${index + 1}`}
+        {formData.stops.map((stop) => (
+          <div key={stop.id}>
+            <AutocompleteInput
+              placeholder={`Stop ${stop.id}`}
+              autocompleteService={autocompleteService}
+              onChange={(value) =>
+                handleAddressChange("stops", stop.id, value, false)
+              }
+              onSelect={(value) =>
+                handleAddressChange("stops", stop.id, value, true)
+              }
             />
           </div>
         ))}

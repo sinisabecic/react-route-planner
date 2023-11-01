@@ -1,4 +1,10 @@
 import React, { useState } from "react";
+import {
+  InputWrapper,
+  PredictionItem,
+  PredictionsDropdown,
+  StyledInput,
+} from "../styles.ts";
 
 interface AutocompleteInputProps {
   placeholder: string;
@@ -37,48 +43,30 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   const handlePredictionClick = (prediction: string) => {
     console.log("Prediction clicked:", prediction);
     onSelect(prediction);
-    setValue(prediction); // update the input value when a prediction is selected
+    setValue(prediction);
     setPredictions([]);
   };
 
   return (
-    <div style={{ position: "relative" }}>
-      <input
+    <InputWrapper>
+      <StyledInput
         type="text"
         value={value}
         onChange={handleInputChange}
         placeholder={placeholder}
       />
       {predictions.length > 0 && (
-        <div
-          style={{
-            position: "absolute",
-            top: "100%",
-            width: "100%",
-            zIndex: 1000,
-            border: "1px solid #ccc",
-            backgroundColor: "white",
-          }}
-        >
+        <PredictionsDropdown>
           {predictions.map((prediction, index) => (
-            <button
+            <PredictionItem
               key={index}
-              style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                padding: "8px",
-                border: "none",
-                background: "none",
-                cursor: "pointer",
-              }}
               onClick={() => handlePredictionClick(prediction)}
             >
               {prediction}
-            </button>
+            </PredictionItem>
           ))}
-        </div>
+        </PredictionsDropdown>
       )}
-    </div>
+    </InputWrapper>
   );
 };

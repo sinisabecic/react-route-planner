@@ -1,7 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Button } from "@oykos-development/devkit-react-ts-styled-components";
 import { Loader } from "@googlemaps/js-api-loader";
 import { AutocompleteInput } from "./components/AutoCompleteInput.tsx";
+import {
+  FormContainer,
+  GlobalStyle,
+  MapContainer,
+  StyledButton,
+} from "./styles";
 
 interface AddressData {
   id: string;
@@ -134,8 +139,9 @@ export const App: React.FC = () => {
 
   return (
     <div>
-      <div ref={mapContainerRef} style={{ height: "400px" }} />
-      <form onSubmit={onSubmit}>
+      <GlobalStyle />
+      <MapContainer ref={mapContainerRef} />
+      <FormContainer onSubmit={onSubmit}>
         <AutocompleteInput
           placeholder="Origin"
           autocompleteService={autocompleteService}
@@ -171,9 +177,13 @@ export const App: React.FC = () => {
           </div>
         ))}
 
-        <Button onClick={addStop} content={"Add Stop"} />
-        <Button type="submit" content={"Show Route"} />
-      </form>
+        <StyledButton
+          variant={"tertiary"}
+          onClick={addStop}
+          content={"Add Stop"}
+        />
+        <StyledButton type="submit" content={"Show Route"} />
+      </FormContainer>
     </div>
   );
 };

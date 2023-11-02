@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
-import { AutocompleteInput } from "./components/AutoCompleteInput.tsx";
+import { AutocompleteInput } from "./components/AutoCompleteInput";
 import {
   FormContainer,
   GlobalStyle,

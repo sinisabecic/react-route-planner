@@ -3,7 +3,7 @@ import { Button } from "@oykos-development/devkit-react-ts-styled-components";
 
 const primaryColor = "#007bff";
 const whiteColor = "#FFFFFF";
-const hoverColor = "#0056b3"; // a slightly darker shade for the primary color on hover
+const hoverColor = "#0056b3";
 
 export const GlobalStyle = createGlobalStyle`
   body {

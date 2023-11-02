@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   InputWrapper,
   PredictionItem,
@@ -20,28 +20,44 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   autocompleteService,
 }) => {
   const [value, setValue] = useState<string>("");
-  const [predictions, setPredictions] = useState<string[]>([]);
+  const [predictions, setPredictions] = useState<
+    google.maps.places.AutocompletePrediction[]
+  >([]);
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  // Effect for debouncing value change
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, 500); // Adjust the delay for debouncing as needed
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value]);
+
+  const fetchPredictions = useCallback(() => {
+    if (autocompleteService && debouncedValue) {
+      autocompleteService.getPlacePredictions(
+        { input: debouncedValue },
+        (results) => {
+          setPredictions(results || []);
+        },
+      );
+    }
+  }, [autocompleteService, debouncedValue]);
+
+  useEffect(() => {
+    fetchPredictions();
+  }, [fetchPredictions]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
     setValue(inputValue);
-    console.log("Input changed:", inputValue);
     onChange(inputValue);
-
-    if (autocompleteService) {
-      autocompleteService.getPlacePredictions(
-        { input: inputValue },
-        (results) => {
-          const newPredictions =
-            results?.map((result) => result.description) || [];
-          setPredictions(newPredictions);
-        },
-      );
-    }
   };
 
   const handlePredictionClick = (prediction: string) => {
-    console.log("Prediction clicked:", prediction);
     onSelect(prediction);
     setValue(prediction);
     setPredictions([]);
@@ -57,12 +73,12 @@ export const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
       />
       {predictions.length > 0 && (
         <PredictionsDropdown>
-          {predictions.map((prediction, index) => (
+          {predictions.map((prediction) => (
             <PredictionItem
-              key={index}
-              onClick={() => handlePredictionClick(prediction)}
+              key={prediction.place_id} // Use place_id which is unique instead of the array index
+              onClick={() => handlePredictionClick(prediction.description)}
             >
-              {prediction}
+              {prediction.description}
             </PredictionItem>
           ))}
         </PredictionsDropdown>
